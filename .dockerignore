@@ -1,0 +1,40 @@
+# Node
+node_modules
+dist
+
+# Mobile
+android
+ios
+
+# Version control
+.git
+.gitignore
+
+# IDE
+.idea
+.vscode
+
+# Logs
+*.log
+logs/
+
+# Python cache
+**/__pycache__
+**/*.pyc
+**/*.pyo
+**/*.pyd
+.Python
+backend/__pycache__
+
+# Python virtual envs
+venv/
+.venv/
+env/
+
+# Environment files (never copy secrets into image)
+.env
+backend/.env
+
+# OS
+.DS_Store
+Thumbs.db

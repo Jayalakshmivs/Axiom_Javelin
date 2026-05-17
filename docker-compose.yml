@@ -1,0 +1,76 @@
+
+networks:
+  axiom_net:
+    driver: bridge
+
+services:
+
+
+  # ─── MongoDB ─────────────────────────────────────────────────────────────────
+  mongodb:
+    image: mongo:latest
+    container_name: axiom_mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - axiom_net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  # ─── Backend (FastAPI + Uvicorn) ─────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: axiom_backend
+    ports:
+      - "8001:8000"   # Exposed for direct Swagger access at localhost:8001
+    environment:
+      - PYTHONUNBUFFERED=1
+      - MONGO_URI=mongodb://mongodb:27017
+      - DB_NAME=axiom_javelin
+      - HOST=0.0.0.0
+      - PORT=8000
+      - DEBUG=false
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    volumes:
+      - backend_data:/app/data
+      - backend_logs:/app/logs
+    networks:
+      - axiom_net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  # ─── Frontend (Vite build → Nginx) ───────────────────────────────────────────
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: axiom_frontend
+    ports:
+      - "3000:80"      # Main app port — open http://localhost:3000 in browser
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - axiom_net
+    restart: unless-stopped
+
+volumes:
+  backend_data:
+  backend_logs:
+  mongodb_data:
